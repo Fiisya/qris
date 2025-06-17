@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QRIS Dinamis Custom</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      max-width: 500px;
+      background: #fff;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    h1 { text-align: center; margin-bottom: 20px; }
+    input, button {
+      width: 100%; padding: 12px;
+      margin-top: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #007bff; color: #fff;
+      border: none; cursor: pointer;
+    }
+    button:hover { background-color: #0056b3; }
+    .qr { text-align: center; margin-top: 25px; }
+    .qr img { border: 1px solid #ccc; padding: 5px; background: white; }
+    small { word-break: break-all; display: block; margin-top: 10px; color: #555; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>QRIS Dinamis</h1>
+    <label>Masukkan Jumlah Bayar (Rp):</label>
+    <input type="number" id="amount" placeholder="Contoh: 50000" min="1"/>
+    <button onclick="generateQRIS()">Buat QR</button>
+    <div class="qr" id="qr"></div>
+  </div>
+
+  <script>
+    function crc16ccitt(str) {
+      let crc = 0xFFFF;
+      for (let i = 0; i < str.length; i++) {
+        crc ^= str.charCodeAt(i) << 8;
+        for (let j = 0; j < 8; j++) {
+          crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : crc << 1;
+        }
+      }
+      return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+    }
+
+    function generateQRIS() {
+      const amount = document.getElementById("amount").value;
+      if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+        alert("Masukkan nominal yang valid.");
+        return;
+      }
+
+      const nominal = parseFloat(amount).toFixed(0);
+
+      const payloadBase = 
+        "000201010211" +
+        "26570011ID.DANA.WWW011893600915365552667402096555266740303UMI" +
+        "51440014ID.CO.QRIS.WWW0215ID10243260493670303UMI" +
+        "52044814" +
+        "5303360" +
+        "54" + nominal.length.toString().padStart(2, '0') + nominal +
+        "5802ID" +
+        "5909Alfi Cell" +
+        "6015Kab. Aceh Besar" +
+        "6105233716" +
+        "6304";
+
+      const crc = crc16ccitt(payloadBase.slice(0, -4));
+      const finalPayload = payloadBase.slice(0, -4) + crc;
+
+      const qr = qrcode(0, 'M');
+      qr.addData(finalPayload);
+      qr.make();
+
+      document.getElementById("qr").innerHTML = `
+        <div>${qr.createImgTag(6)}</div>
+        <small><strong>Payload:</strong><br>${finalPayload}</small>
+      `;
+    }
+  </script>
+</body>
+</html>
